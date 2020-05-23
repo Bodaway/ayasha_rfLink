@@ -33,15 +33,19 @@ impl RawFrame {
             String::from_utf8(data).context(Utf8RawConvertError)?,
         ))
     }
+    pub fn get_debug_data(&self) -> String {
+        let raw_vec = self.to_vec();
+        (&raw_vec[4][13..]).to_string()
+    }
 }
 
-pub struct rf_data_dao<'a> {
-    pub id : &'a str,
-    pub protocol : &'a str,
-    pub dt_start : chrono::NaiveDateTime,
-    pub dt_end : Option<chrono::NaiveDateTime>,
-    pub temperature : Option<f64>,
-    pub humidity : Option<f64>
+pub struct RfDataDao {
+    pub id: String,
+    pub protocol: String,
+    pub dt_start: chrono::NaiveDateTime,
+    pub dt_end: Option<chrono::NaiveDateTime>,
+    pub temperature: Option<f64>,
+    pub humidity: Option<f64>,
 }
 
 pub trait RfData: Downcast {
@@ -54,6 +58,6 @@ pub trait RfData: Downcast {
     fn values_is_diff(&self, other: &Self) -> bool
     where
         Self: Sized;
-    fn to_dao(&self) -> rf_data_dao;
+    fn to_dao(&self) -> RfDataDao;
 }
 impl_downcast!(RfData);

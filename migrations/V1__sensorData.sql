@@ -1,7 +1,9 @@
 create table sensors_data (
 	id text not null,
-	dt_start timestamp,
+	protocol text not null,
+	dt_start timestamp not null,
 	dt_end timestamp,
 	temperature real,
-	humidity real
+	humidity real,
+	Primary key (id,protocol,dt_start)
 );

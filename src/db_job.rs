@@ -1,5 +1,5 @@
 use crate::errors::Result as RfResult;
-use rusqlite::{params, Connection, Result};
+use rusqlite::Connection;
 use std::path::Path;
 
 type DbJob<T> = Box<dyn FnOnce(&mut Option<T>) -> RfResult<()> + Send>;
@@ -12,11 +12,9 @@ pub struct DbQueryExecutor {
 
 impl DbQueryExecutor {
     pub fn spawn<F: FnOnce(&mut Option<Conn>) -> RfResult<()> + Send + 'static>(&self, job: F) {
-        println!("start sending");
         self.inner
             .send(Box::new(job))
             .expect("thread_pool::Executor::spawn failed");
-        println!("is sending");
     }
 }
 
@@ -26,9 +24,6 @@ pub fn start_thread(db_path: &Path) -> (std::thread::JoinHandle<()>, DbQueryExec
     let join_handle = std::thread::spawn(move || {
         let mut db = match Conn::open(db_path) {
             Ok(db) => {
-                println!("We read all messages after open:");
-                //print_all_messages(&db).expect("read from db failed");
-                println!("read all messages after open done");
                 Some(db)
             }
             Err(err) => {
@@ -39,7 +34,6 @@ pub fn start_thread(db_path: &Path) -> (std::thread::JoinHandle<()>, DbQueryExec
         loop {
             match receiver.recv() {
                 Ok(x) => {
-                    println!("start");
                     let r = x(&mut db);
                     match r {
                         Ok(_) => (),

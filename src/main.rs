@@ -5,19 +5,17 @@ extern crate snafu;
 #[macro_use]
 extern crate downcast_rs;
 
+mod db;
 mod db_job;
 mod env;
 mod errors;
 mod lacrosse_v3_protocol;
 mod models;
 mod store;
-mod db;
 
 use snafu::ResultExt;
 use std::path::Path;
 use std::time::Duration;
-use rusqlite::{params, Result as sqlerror};
-
 
 use crate::db_job::Conn;
 use crate::db_job::DbQueryExecutor;
@@ -40,18 +38,19 @@ fn main() {
         Err(e) => panic!("error database access : {}", e.to_string()),
     };
     let db_path = Path::new(&path);
-    let (db_thread, db_exec) = db_job::start_thread(db_path);
+    let (_, db_exec) = db_job::start_thread(db_path);
 
     db_exec.spawn(|conn: &mut Option<Conn>| {
         if let Some(conn) = conn.as_mut() {
-            println!("migrations");
             let r = embedded::migrations::runner().run(conn);
             match r {
                 Ok(_) => Ok(()),
-                Err(e) => Err(RfError::MigrationDbError{source: e})
+                Err(e) => Err(RfError::MigrationDbError { source: e }),
             }
         } else {
-            Err(RfError::DbAccessError{value : "access error during migration".into()})
+            Err(RfError::DbAccessError {
+                value: "access error during migration".into(),
+            })
         }
     });
 
@@ -68,8 +67,7 @@ fn main() {
 }
 
 fn listen(db_ex: &DbQueryExecutor) -> Result<()> {
-    let mut port = serial::open("/dev/ttyACM0")
-        .context(ConfigurationError)?; //SERIAL_PORT
+    let mut port = serial::open("/dev/ttyACM0").context(ConfigurationError)?; //SERIAL_PORT
     serial_config(&mut port)?;
 
     set_debug_mode(&mut port)?;
@@ -91,12 +89,10 @@ fn listen(db_ex: &DbQueryExecutor) -> Result<()> {
             data.humidity.to_string()
         );
 
-            let dao = data.to_dao();
+        let dao = data.to_dao();
         if store.is_new_value(&data) {
             store.insert(Box::new(data));
-            db_ex.spawn(move |conn: &mut Option<Conn>|{
-                db::insert_sensor_data(conn, &dao)
-            })
+            db_ex.spawn(move |conn: &mut Option<Conn>| db::insert_sensor_data(conn, dao))
         }
     }
 }

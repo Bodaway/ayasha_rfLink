@@ -124,7 +124,6 @@ fn clean_a_store() {
 #[test]
 fn is_new_in_a_store() {
     use crate::lacrosse_v3_protocol::LaCrosseData;
-    use chrono::Duration;
     use chrono::Local;
 
     let data: Vec<Box<dyn RfData>> = vec![Box::new(LaCrosseData {

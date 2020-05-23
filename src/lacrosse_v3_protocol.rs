@@ -29,20 +29,20 @@ impl RfData for LaCrosseData {
 
         diff_temp.abs() >= 0.2 || diff_hum.abs() >= 1
     }
-    fn to_dao(&self) -> rf_data_dao {
-        rf_data_dao{
-            id : &self.sensor_id,
-            protocol : "lacrosse_v3",
-            dt_start : self.timestamp,
-            dt_end : None,
-            temperature : Some(self.temperature),
-            humidity : Some(self.humidity as f64)
+    fn to_dao(&self) -> RfDataDao {
+        RfDataDao {
+            id: self.sensor_id.clone(),
+            protocol: "lacrosse_v3".into(),
+            dt_start: self.timestamp,
+            dt_end: None,
+            temperature: Some(self.temperature),
+            humidity: Some(self.humidity as f64),
         }
     }
 }
 
 pub fn is_valid_raw(raw: &RawFrame) -> bool {
-    let signal = raw.data.split(',').collect::<Vec<&str>>();
+    let signal = raw.data.split(';').collect::<Vec<&str>>();
     if signal[2] == "DEBUG" && signal[3] == "Pulses=511" {
         true
     } else {
@@ -51,8 +51,8 @@ pub fn is_valid_raw(raw: &RawFrame) -> bool {
 }
 fn decrypt(raw: &RawFrame) -> Result<LaCrosseData> {
     //if pulse_number != "511" {warn!("pulse number different du standart LaCrosse 511 : {}", pulse_number)};
-
-    let signal = raw.data.split(',').collect::<Vec<&str>>();
+    let debug_data = raw.get_debug_data();
+    let signal = debug_data.split(',').collect::<Vec<&str>>();
 
     let tuple_pulse = to_tuple_pulse(&signal)?;
     let binary_signal = binarize(tuple_pulse);
