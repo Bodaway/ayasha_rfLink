@@ -18,9 +18,8 @@ async fn main() {
 
     let listener = RfReceiver::new(vec![]);
 
-    tokio::spawn(async {
-        RfReceiver::start_listening(& move |s| println!("{}", s))
-    });
+    RfReceiver::start_listening(& move |s| println!("{}", s));
+    
     let addr = SocketAddr::from(([127, 0, 0, 1], 7000));
 
     let make_service = make_service_fn(move |_| {

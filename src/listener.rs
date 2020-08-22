@@ -68,13 +68,12 @@ impl RfReceiver {
 
     pub fn start_listening(handle: &'static (dyn Fn(String) +Send+Sync)) {
         println!("Start listening");
-        loop {
             let result = RfReceiver::listen(handle);
             match result {
                 Ok(_) => (),
                 Err(e) => unimplemented!(),
             };
-        }
+            println!("end listening");
     }
 
     fn listen(handle: &'static (dyn Fn(String) +Send+Sync)) -> Result<()> {
