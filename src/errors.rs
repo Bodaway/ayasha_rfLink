@@ -14,6 +14,9 @@ pub enum RfError {
 
     #[snafu(display("error during serial read : {}", source.to_string()))]
     ReadError { source: io_error },
+ 
+    #[snafu(display("Unable to engage debug mode"))]
+    DebugNotEngage,
 
     #[snafu(display("error during utf8 convertion : {}", source.to_string()))]
     Utf8RawConvertError { source: FromUtf8Error },

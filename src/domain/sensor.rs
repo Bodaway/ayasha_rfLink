@@ -24,6 +24,11 @@ impl Sensor {
         }
     }
     pub fn add_value(&self, value: SensorValue) {
+        match value.value {
+            SensorValueType::Number(x) => println!("ajout de la valeur {}", x),
+            _ => ()
+        }
+        
         self.values.borrow_mut().push(value);
     }
     fn get_last(&self) -> Option<SensorValue> {
@@ -41,6 +46,9 @@ pub struct SensorValue {
 pub struct SensorRepository {
     sensors: RefCell<Vec<Sensor>>,
 }
+unsafe impl Send for SensorRepository {}
+unsafe impl Sync for SensorRepository {}
+
 
 impl SensorRepository {
     pub fn new() -> SensorRepository {
@@ -48,15 +56,15 @@ impl SensorRepository {
             sensors: RefCell::new(vec![]),
         }
     }
-    pub fn add_value(&self, id: &SensorIdentifier, value: SensorValue) {
+    pub fn add_value(&self, value: SensorValue) {
         let mut sensors = self.sensors.borrow_mut();
-        let sensor = sensors.iter().find(|s| &s.id == id);
+        let sensor = sensors.iter().find(|s| s.id == value.id);
         match sensor {
             Some(s) => {
                 s.add_value(value);
             }
             None => {
-                let nsensor = Sensor::new(id);
+                let nsensor = Sensor::new(&value.id);
                 nsensor.add_value(value);
                 sensors.push(nsensor)
             }
@@ -94,7 +102,7 @@ mod test {
 
         {
             assert_eq!(repo.sensors.borrow().len(), 0);
-            repo.add_value(&id, value);
+            repo.add_value(value);
         }
         assert_eq!(repo.sensors.borrow().len(), 1);
 
@@ -123,8 +131,8 @@ mod test {
         let repo = SensorRepository::new();
 
         assert_eq!(repo.sensors.borrow().len(), 0);
-        repo.add_value(&id, value);
-        repo.add_value(&id2, value2);
+        repo.add_value(value);
+        repo.add_value(value2);
 
         assert_eq!(repo.sensors.borrow().len(), 2);
 

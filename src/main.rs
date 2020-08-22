@@ -2,28 +2,33 @@ mod domain;
 mod errors;
 mod listener;
 
+extern crate lazy_static;
+
 use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Error, Method, Request, Response, Server, StatusCode};
 use std::net::SocketAddr;
-use std::sync::Arc;
+use std::sync::{Arc,Mutex};
 use tokio::task;
-
+use lazy_static::*;
 
 use crate::domain::sensor::SensorRepository;
-use crate::listener::RfReceiver;
+
+lazy_static! {
+    pub static ref state: Arc<SensorRepository> = Arc::new(SensorRepository::new());
+}
+
+fn transfert_to_domain(data: String) {
+        println!("{}", data);
+        domain::listen(&data, state.clone());
+}
 
 #[tokio::main]
 async fn main() {
-    let state = Arc::new(SensorRepository::new());
-
-    let listener = RfReceiver::new(vec![]);
-
-    RfReceiver::start_listening(& move |s| println!("{}", s));
     
+    listener::start_listening(&transfert_to_domain);
     let addr = SocketAddr::from(([127, 0, 0, 1], 7000));
 
     let make_service = make_service_fn(move |_| {
-        let state = state.clone();
 
         async move {
             Ok::<_, Error>(service_fn(move |req| async move {
