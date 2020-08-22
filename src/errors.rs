@@ -1,4 +1,4 @@
-use serial::Error as serial_error;
+use tokio_serial::Error as serial_error;
 use snafu::Snafu;
 use std::io::Error as io_error;
 use std::string::FromUtf8Error;
@@ -20,7 +20,7 @@ pub enum RfError {
     
     #[snafu(display("No valid frame in data"))]
     NoValidFrame,
-
+ 
     #[snafu(display("parsing failure for value {}", value))]
     ParsingFrameError {
         value: String,
@@ -29,18 +29,6 @@ pub enum RfError {
     
     #[snafu(display("error during reading env : {}", source.to_string()))]
     ReadEnvError { source:std::env::VarError},
-
-    #[snafu(display("error during parsing env : {}", value))]
-    ParsingEnvError { value : String},
-
-    #[snafu(display("error during db migration : {}", source.to_string()))]
-    MigrationDbError { source: refinery::Error},
-
-    #[snafu(display("error cannot access connection db : {}", value))]
-    DbAccessError { value : String},
-
-    #[snafu(display("error db : {}", source.to_string()))]
-    DbError { source : rusqlite::Error},
 
 }
 

@@ -1,8 +1,11 @@
-use crate::errors::*;
-use crate::models::*;
+use crate::domain::raw_frame::RawFrame;
+use crate::domain::sensor::{Sensor,SensorValue, SensorValueType};
+use crate::domain::sensor_identifier::SensorIdentifier;
 use chrono::NaiveDateTime;
+use crate::errors::*;
 use snafu::ResultExt;
 
+#[derive(Debug,PartialEq)]
 pub struct LaCrosseData {
     pub sensor_id: String,
     pub temperature: f64,
@@ -10,11 +13,23 @@ pub struct LaCrosseData {
     pub timestamp: NaiveDateTime,
 }
 
-impl RfData for LaCrosseData {
-    fn from_raw(raw: &RawFrame) -> Result<LaCrosseData> {
+impl LaCrosseData {
+    pub fn from_raw(raw: &RawFrame) -> Result<LaCrosseData> {
         decrypt(&raw)
     }
-    fn get_date(&self) -> NaiveDateTime {
+    fn get_protocol() -> String {
+        "lacrosse_v3".to_string()
+    }
+    pub fn to_sensors_values(&self) -> Vec<SensorValue> {
+        let tempId = SensorIdentifier::new(&self.sensor_id,&LaCrosseData::get_protocol(),"temperature");
+        let temp_value = SensorValue{id: tempId,timestamp: self.timestamp, value: SensorValueType::Number(self.temperature)};
+
+        let humId = SensorIdentifier::new(&self.sensor_id,&LaCrosseData::get_protocol(),"humidity");
+        let hum_value = SensorValue{id: humId,timestamp: self.timestamp, value: SensorValueType::Number(self.humidity as f64)};
+
+        vec![temp_value, hum_value]
+    }
+    /*fn get_date(&self) -> NaiveDateTime {
         self.timestamp
     }
     fn get_id(&self) -> String {
@@ -38,17 +53,25 @@ impl RfData for LaCrosseData {
             temperature: Some(self.temperature),
             humidity: Some(self.humidity as f64),
         }
-    }
+    }*/
 }
 
 pub fn is_valid_raw(raw: &RawFrame) -> bool {
-    let signal = raw.data.split(';').collect::<Vec<&str>>();
-    if signal[2] == "DEBUG" && signal[3] == "Pulses=511" {
-        true
-    } else {
-        false
+    match &raw.data {
+        data if data == &String::default() => false,
+        data if data.split(';').collect::<Vec<&str>>().len() < 5 => false,
+        _ => {
+            let signal = raw.data.split(';').collect::<Vec<&str>>();
+            if signal[2] == "DEBUG" && signal[3] == "Pulses=511" {
+                true
+            } else {
+                false
+            }
+        }
     }
 }
+
+
 fn decrypt(raw: &RawFrame) -> Result<LaCrosseData> {
     //if pulse_number != "511" {warn!("pulse number different du standart LaCrosse 511 : {}", pulse_number)};
     let debug_data = raw.get_debug_data();
@@ -143,43 +166,67 @@ fn reverse_binary(frame: &str) -> String {
     }
     new_frame
 }
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[test]
+    fn is_valid_raw_empty() {
+        let input = RawFrame {
+            data: "".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
 
-#[test]
-fn compare_lacrosse_data() {
-    use chrono::Local;
-    let data1 = LaCrosseData {
-        sensor_id: "0".into(),
-        temperature: 10.1,
-        humidity: 50,
-        timestamp: Local::now().naive_local(),
-    };
-    let data2 = LaCrosseData {
-        sensor_id: "0".into(),
-        temperature: 10.2,
-        humidity: 50,
-        timestamp: Local::now().naive_local(),
-    };
-    let data3 = LaCrosseData {
-        sensor_id: "0".into(),
-        temperature: 10.3,
-        humidity: 50,
-        timestamp: Local::now().naive_local(),
-    };
-    let data5 = LaCrosseData {
-        sensor_id: "0".into(),
-        temperature: 10.4,
-        humidity: 50,
-        timestamp: Local::now().naive_local(),
-    };
-    let data4 = LaCrosseData {
-        sensor_id: "0".into(),
-        temperature: 10.1,
-        humidity: 51,
-        timestamp: Local::now().naive_local(),
-    };
+        let result = is_valid_raw(&input);
+        assert_eq!(result, false);
+    }
+    #[test]
+    fn is_valid_raw_unsplitable() {
+        let input = RawFrame {
+            data: "I am a non sense string".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
 
-    assert_eq!(data1.values_is_diff(&data2), false);
-    assert_eq!(data1.values_is_diff(&data4), true);
-    assert_eq!(data1.values_is_diff(&data5), true);
-    assert_eq!(data1.values_is_diff(&data3), true);
+        let result = is_valid_raw(&input);
+        assert_eq!(result, false);
+    }
+    #[test]
+    fn is_valid_raw_not_enought_sections() {
+        let input = RawFrame {
+            data: "test;test;0".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
+
+        let result = is_valid_raw(&input);
+        assert_eq!(result, false);
+    }
+    #[test]
+    fn is_valid_raw_not_debug() {
+        let input = RawFrame {
+            data: "test;test;NOTDEBUG;Pulses=511;".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
+
+        let result = is_valid_raw(&input);
+        assert_eq!(result, false);
+    }
+    #[test]
+    fn is_valid_raw_not_have_511_pulses() {
+        let input = RawFrame {
+            data: "test;test;DEBUG;Pulses=521;".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
+
+        let result = is_valid_raw(&input);
+        assert_eq!(result, false);
+    }
+    #[test]
+    fn is_valid_raw_ok() {
+        let input = RawFrame {
+            data: "test;test;DEBUG;Pulses=511;".to_string(),
+            timestamp: chrono::Local::now().naive_local(),
+        };
+
+        let result = is_valid_raw(&input);
+        assert_eq!(result, true);
+    }
 }
