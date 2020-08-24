@@ -14,7 +14,9 @@ pub fn listen(data: &str, repo: &mut SensorRepository) -> Result<()> {
     let frame = Frame::decrypt_raw(&raw)?;
     let sensors = frame.obtain_sensor_values();
 
-    sensors.into_iter().map(|sv| repo.add_value(sv));
+    for sv in sensors {
+        repo.add_value(sv);
+    }
 
     Ok(())
 }

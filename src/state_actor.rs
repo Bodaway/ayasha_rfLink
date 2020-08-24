@@ -27,15 +27,20 @@ impl MessageSender {
 pub fn init_actor() -> MessageSender {
     let (sender, receiver) = channel::<Message>();
     task::spawn(async move {
-        loop {
             let mut repo = SensorRepository::new();
+        loop {
             match receiver.recv() {
                 Ok(message) => {
-                    let _result = match message {
+                    let result = match message {
                         Message::Rejeu => unimplemented!(),
                         Message::IncomingData(input) => listen(&input, &mut repo),
                         Message::GetData(getter) => getter(&repo),
                     };
+                    match result {
+                        Ok(_) => (),
+                        Err(e) => println!("error in domain actor: {}", e)
+                    };
+                    
                 }
                 Err(e) => {}
             }

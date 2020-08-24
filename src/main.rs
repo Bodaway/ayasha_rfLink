@@ -47,9 +47,14 @@ async fn main() {
 
                     }));
                     sender_read.Send(mess);
-                    match receiver.recv() {
-                        Ok(data) => Ok::<_,Error>(Response::new(Body::from(*data))),
-                        Err(e) => Ok::<_,Error>(Response::new(Body::from(e.to_string())))
+                    match receiver.recv_timeout(std::time::Duration::from_secs(1)) {
+                        Ok(data) => {
+                            Ok::<_,Error>(Response::builder().header("content-type", "application/json").header("charset", "UTF-8").body(Body::from(*data)).unwrap())
+                        },
+                        Err(e) => {
+                            println!("error in hyper: {}", e);
+                            Ok::<_,Error>(Response::new(Body::from(e.to_string())))
+                        }
                     }
                 },
                 _ => {

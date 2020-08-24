@@ -54,7 +54,6 @@ pub fn start_listening(messager: MessageSender) {
             println!("error during read: {}", e);
             start_listening(messager);}
     };
-    println!("end listening");
 }
 
 fn listen(messager: MessageSender) -> Result<()> {
@@ -84,24 +83,30 @@ fn listen(messager: MessageSender) -> Result<()> {
         io.send("10;rfdebug=on;\r\n".to_string()).await;
         let responseResult = io.next().await;
         let isDebug = match responseResult {
-            None => false,
-            Some(result) => result.map_or_else(
-                |s| {
-                    println!("debug engage {}", &s);
-                    true
-                },
-                |_| false,
-            ),
+            None => {
+                println!("debug is None");
+                false
+            },
+            Some(result) => 
+                match result {
+                    Ok(data) => {
+                        data.contains("RFDEBUG=ON")
+                    },
+                    Err(e) =>  {
+                    println!("debug engage error: {}", e);
+                    false}
+                }
         };
 
         if isDebug {
-            sender.send(true);
+            sender.send(true).expect("inter task communication error");
             while let Some(line_result) = io.next().await {
                 let line = line_result.expect("Failed to read line");
+                println!("{}", line);
                 messager.Send(Message::IncomingData(line));
             }
         }
-        sender.send(false);
+        sender.send(false).expect("inter task communication error");
     });
 
     match receiver.recv() {
@@ -109,6 +114,6 @@ fn listen(messager: MessageSender) -> Result<()> {
             true => Ok(()),
             false => Err(RfError::DebugNotEngage)
         },
-        Err(e) => Err(RfError::DebugNotEngage)
+        Err(_) => Err(RfError::DebugNotEngage)
     }
 }
