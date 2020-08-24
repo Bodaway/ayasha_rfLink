@@ -1,4 +1,5 @@
 use crate::errors::*;
+use crate::state_actor::{Message,MessageSender};
 
 use bytes::{BufMut, BytesMut};
 use futures::future::{BoxFuture, FutureExt};
@@ -6,6 +7,7 @@ use futures::{sink::SinkExt, stream::StreamExt};
 use snafu::ResultExt;
 use std::{env, io, str};
 use tokio_util::codec::{Decoder, Encoder};
+
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyACM0";
@@ -43,19 +45,19 @@ impl Encoder<String> for LineCodec {
     }
 }
 
-pub fn start_listening(handle: &'static (dyn Fn(String) + Send + Sync)) {
+pub fn start_listening(messager: MessageSender) {
     println!("Start listening");
-    let result = listen(handle);
+    let result = listen(messager.clone());
     match result {
         Ok(_) => (),
         Err(e) => {
             println!("error during read: {}", e);
-            start_listening(handle);}
+            start_listening(messager);}
     };
     println!("end listening");
 }
 
-fn listen(handle: &'static (dyn Fn(String) + Send + Sync)) -> Result<()> {
+fn listen(messager: MessageSender) -> Result<()> {
     let mut args = env::args();
     let tty_path = args.nth(1).unwrap_or_else(|| DEFAULT_TTY.into());
 
@@ -96,7 +98,7 @@ fn listen(handle: &'static (dyn Fn(String) + Send + Sync)) -> Result<()> {
             sender.send(true);
             while let Some(line_result) = io.next().await {
                 let line = line_result.expect("Failed to read line");
-                handle(line);
+                messager.Send(Message::IncomingData(line));
             }
         }
         sender.send(false);

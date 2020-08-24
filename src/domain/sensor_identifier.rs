@@ -1,4 +1,6 @@
-#[derive(PartialEq, Debug, Clone)]
+use serde::Serialize;
+
+#[derive(PartialEq, Debug, Clone, Serialize)]
 pub struct SensorIdentifier {
     pub probe_id: String,
     pub protocol: String,

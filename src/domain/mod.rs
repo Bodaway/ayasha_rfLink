@@ -9,7 +9,7 @@ use frame::Frame;
 use raw_frame::RawFrame;
 use sensor::{SensorRepository, SensorValue};
 
-pub fn listen(data: &str, repo: std::sync::Arc<SensorRepository>) -> Result<()> {
+pub fn listen(data: &str, repo: &mut SensorRepository) -> Result<()> {
     let raw = RawFrame::new(data);
     let frame = Frame::decrypt_raw(&raw)?;
     let sensors = frame.obtain_sensor_values();
