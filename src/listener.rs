@@ -1,13 +1,10 @@
 use crate::errors::*;
-use crate::state_actor::{Message,MessageSender};
+use crate::state_actor::{Message, MessageSender};
 
 use bytes::{BufMut, BytesMut};
-use futures::future::{BoxFuture, FutureExt};
 use futures::{sink::SinkExt, stream::StreamExt};
-use snafu::ResultExt;
 use std::{env, io, str};
 use tokio_util::codec::{Decoder, Encoder};
-
 
 #[cfg(unix)]
 const DEFAULT_TTY: &str = "/dev/ttyACM0";
@@ -52,7 +49,8 @@ pub fn start_listening(messager: MessageSender) {
         Ok(_) => (),
         Err(e) => {
             println!("error during read: {}", e);
-            start_listening(messager);}
+            start_listening(messager);
+        }
     };
 }
 
@@ -80,30 +78,30 @@ fn listen(messager: MessageSender) -> Result<()> {
         let data = a.unwrap().expect("Failed to read line");
         println!("{}", data);
 
-        io.send("10;rfdebug=on;\r\n".to_string()).await;
-        let responseResult = io.next().await;
-        let isDebug = match responseResult {
+        io.send("10;rfdebug=on;\r\n".to_string())
+            .await
+            .expect("rf link comm error");
+        let response_result = io.next().await;
+        let is_debug = match response_result {
             None => {
                 println!("debug is None");
                 false
-            },
-            Some(result) => 
-                match result {
-                    Ok(data) => {
-                        data.contains("RFDEBUG=ON")
-                    },
-                    Err(e) =>  {
+            }
+            Some(result) => match result {
+                Ok(data) => data.contains("RFDEBUG=ON"),
+                Err(e) => {
                     println!("debug engage error: {}", e);
-                    false}
+                    false
                 }
+            },
         };
 
-        if isDebug {
+        if is_debug {
             sender.send(true).expect("inter task communication error");
             while let Some(line_result) = io.next().await {
                 let line = line_result.expect("Failed to read line");
                 println!("{}", line);
-                messager.Send(Message::IncomingData(line));
+                messager.send(Message::IncomingData(line));
             }
         }
         sender.send(false).expect("inter task communication error");
@@ -112,8 +110,8 @@ fn listen(messager: MessageSender) -> Result<()> {
     match receiver.recv() {
         Ok(engage) => match engage {
             true => Ok(()),
-            false => Err(RfError::DebugNotEngage)
+            false => Err(RfError::DebugNotEngage),
         },
-        Err(_) => Err(RfError::DebugNotEngage)
+        Err(_) => Err(RfError::DebugNotEngage),
     }
 }

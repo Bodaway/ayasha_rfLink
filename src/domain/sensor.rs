@@ -1,7 +1,6 @@
 use crate::domain::sensor_identifier::SensorIdentifier;
-use std::cell::RefCell;
-use serde::Serialize;
 use crate::errors::*;
+use serde::Serialize;
 use snafu::ResultExt;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
@@ -29,9 +28,7 @@ impl Sensor {
     pub fn add_value(&mut self, value: SensorValue) {
         match value.value {
             SensorValueType::Number(x) => println!("ajout de la valeur {}", x),
-            _ => ()
         }
-        
         self.values.push(value);
     }
     fn get_last(&self) -> Option<SensorValue> {
@@ -52,12 +49,9 @@ pub struct SensorRepository {
 unsafe impl Send for SensorRepository {}
 unsafe impl Sync for SensorRepository {}
 
-
 impl SensorRepository {
     pub fn new() -> SensorRepository {
-        SensorRepository {
-            sensors: vec![],
-        }
+        SensorRepository { sensors: vec![] }
     }
     pub fn add_value(&mut self, value: SensorValue) {
         let sensor = self.sensors.iter_mut().find(|s| s.id == value.id);

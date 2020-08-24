@@ -1,11 +1,11 @@
 use crate::domain::raw_frame::RawFrame;
-use crate::domain::sensor::{Sensor,SensorValue, SensorValueType};
+use crate::domain::sensor::{SensorValue, SensorValueType};
 use crate::domain::sensor_identifier::SensorIdentifier;
-use chrono::NaiveDateTime;
 use crate::errors::*;
+use chrono::NaiveDateTime;
 use snafu::ResultExt;
 
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub struct LaCrosseData {
     pub sensor_id: String,
     pub temperature: f64,
@@ -21,11 +21,24 @@ impl LaCrosseData {
         "lacrosse_v3".to_string()
     }
     pub fn to_sensors_values(&self) -> Vec<SensorValue> {
-        let tempId = SensorIdentifier::new(&self.sensor_id,&LaCrosseData::get_protocol(),"temperature");
-        let temp_value = SensorValue{id: tempId,timestamp: self.timestamp, value: SensorValueType::Number(self.temperature)};
+        let temp_id = SensorIdentifier::new(
+            &self.sensor_id,
+            &LaCrosseData::get_protocol(),
+            "temperature",
+        );
+        let temp_value = SensorValue {
+            id: temp_id,
+            timestamp: self.timestamp,
+            value: SensorValueType::Number(self.temperature),
+        };
 
-        let humId = SensorIdentifier::new(&self.sensor_id,&LaCrosseData::get_protocol(),"humidity");
-        let hum_value = SensorValue{id: humId,timestamp: self.timestamp, value: SensorValueType::Number(self.humidity as f64)};
+        let hum_id =
+            SensorIdentifier::new(&self.sensor_id, &LaCrosseData::get_protocol(), "humidity");
+        let hum_value = SensorValue {
+            id: hum_id,
+            timestamp: self.timestamp,
+            value: SensorValueType::Number(self.humidity as f64),
+        };
 
         vec![temp_value, hum_value]
     }
@@ -70,7 +83,6 @@ pub fn is_valid_raw(raw: &RawFrame) -> bool {
         }
     }
 }
-
 
 fn decrypt(raw: &RawFrame) -> Result<LaCrosseData> {
     //if pulse_number != "511" {warn!("pulse number different du standart LaCrosse 511 : {}", pulse_number)};

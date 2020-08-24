@@ -38,7 +38,7 @@ mod test {
         match frame {
             Err(_) => assert!(false,"frame should be unknow"),
             Ok(f) => match f {
-                Unknow => assert!(true),
+                Frame::Unknow => assert!(true),
                 _ =>  assert!(false,"frame should be unknow")
             }
         }
@@ -51,7 +51,7 @@ mod test {
         match frame {
             Err(_) => assert!(false,"frame should be unknow"),
             Ok(f) => match f {
-                Unknow => assert!(true),
+                Frame::Unknow => assert!(true),
                 _ =>  assert!(false,"frame should be unknow")
             }
         }

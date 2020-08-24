@@ -7,14 +7,12 @@ extern crate lazy_static;
 extern crate serde;
 
 use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Error, Method, Request, Response, Server, StatusCode};
+use hyper::{Body, Error, Method, Response, Server, StatusCode};
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use tokio::task;
 
 use crate::domain::sensor::SensorRepository;
-use state_actor::{Message, MessageSender};
 use crate::errors::RfError;
+use state_actor::Message;
 
 #[tokio::main]
 async fn main() {
@@ -29,9 +27,9 @@ async fn main() {
         async move {
             let sender_read = sender_read.clone();
             Ok::<_, Error>(service_fn(move |req| {
-            let sender_read = sender_read.clone();
+                let sender_read = sender_read.clone();
                 async move {
-            let sender_read = sender_read.clone();
+                    let sender_read = sender_read.clone();
                     match (req.method(), req.uri().path()) {
                 (&Method::GET, "/") => Ok(Response::new(Body::from("Try POSTing data to /echo such as: `curl localhost:3000/echo -XPOST -d 'hello world'`",))),
                 (&Method::GET, "/alive") => Ok::<_,Error>(Response::new(Body::from("yes"))),
@@ -46,7 +44,7 @@ async fn main() {
                         Ok(())
 
                     }));
-                    sender_read.Send(mess);
+                    sender_read.send(mess);
                     match receiver.recv_timeout(std::time::Duration::from_secs(1)) {
                         Ok(data) => {
                             Ok::<_,Error>(Response::builder().header("content-type", "application/json").header("charset", "UTF-8").body(Body::from(*data)).unwrap())

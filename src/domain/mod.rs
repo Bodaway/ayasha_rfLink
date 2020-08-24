@@ -7,7 +7,7 @@ mod sensor_identifier;
 use crate::errors::Result;
 use frame::Frame;
 use raw_frame::RawFrame;
-use sensor::{SensorRepository, SensorValue};
+use sensor::{SensorRepository};
 
 pub fn listen(data: &str, repo: &mut SensorRepository) -> Result<()> {
     let raw = RawFrame::new(data);
