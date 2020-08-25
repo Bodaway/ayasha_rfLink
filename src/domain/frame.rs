@@ -2,18 +2,21 @@ use crate::domain::lacrosse_v3_protocol::is_valid_raw;
 use crate::domain::lacrosse_v3_protocol::LaCrosseData;
 use crate::domain::raw_frame::RawFrame;
 use crate::domain::sensor::SensorValue;
-use crate::errors::Result;
+use crate::domain::errors::*;
+
+use snafu::ResultExt;
 
 #[derive(Debug, PartialEq)]
 pub enum Frame {
     LaCrosseV3(LaCrosseData),
+    OregonSc,
     Unknow,
 }
 
 impl Frame {
     pub fn decrypt_raw(raw: &RawFrame) -> Result<Frame> {
         match raw {
-            r if is_valid_raw(&r) => LaCrosseData::from_raw(&r).and_then(|r| Ok(Frame::LaCrosseV3(r))),
+            r if is_valid_raw(&r) => LaCrosseData::from_raw(&r).and_then(|r| Ok(Frame::LaCrosseV3(r))).context(InternalLacrosseError),
             _ => Ok(Frame::Unknow),
         }
     }
@@ -21,7 +24,8 @@ impl Frame {
     pub fn obtain_sensor_values(&self) -> Vec<SensorValue> {
         match self {
             Frame::Unknow => vec![],
-            Frame::LaCrosseV3(f) => f.to_sensors_values()
+            Frame::LaCrosseV3(f) => f.to_sensors_values(),
+            Frame::OregonSc => unimplemented!()
         }
     } 
 }

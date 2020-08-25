@@ -1,5 +1,6 @@
 use crate::errors::*;
-use crate::state_actor::{Message, MessageSender};
+use crate::domain::command_event::Command;
+use crate::state_actor::MessageSender;
 
 use bytes::{BufMut, BytesMut};
 use futures::{sink::SinkExt, stream::StreamExt};
@@ -101,7 +102,7 @@ fn listen(messager: MessageSender) -> Result<()> {
             while let Some(line_result) = io.next().await {
                 let line = line_result.expect("Failed to read line");
                 println!("{}", line);
-                messager.send(Message::IncomingData(line));
+                messager.send(Command::IncomingData(line));
             }
         }
         sender.send(false).expect("inter task communication error");

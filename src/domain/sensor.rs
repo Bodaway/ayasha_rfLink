@@ -1,12 +1,8 @@
 use crate::domain::sensor_identifier::SensorIdentifier;
-use crate::errors::*;
+use crate::domain::sensor_value_type::SensorValueType;
+use crate::domain::errors::*;
 use serde::Serialize;
 use snafu::ResultExt;
-
-#[derive(Debug, PartialEq, Clone, Serialize)]
-pub enum SensorValueType {
-    Number(f64),
-}
 
 #[derive(Clone, Serialize)]
 pub struct Sensor {
@@ -26,8 +22,9 @@ impl Sensor {
         }
     }
     pub fn add_value(&mut self, value: SensorValue) {
-        match value.value {
-            SensorValueType::Number(x) => println!("ajout de la valeur {}", x),
+        match &value.value {
+            SensorValueType::Temperature(x) => println!("ajout de la valeur {}", x),
+            SensorValueType::Humidity(x) => println!("ajout de la valeur {}", x)
         }
         self.values.push(value);
     }
@@ -72,13 +69,14 @@ impl SensorRepository {
     }
 
     pub fn get_all_state(&self) -> Result<String> {
-        serde_json::to_string(&self.sensors).context(SerialisationError)
+        serde_json::to_string(&self.sensors).context(DataFormatingError)
     }
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::domain::sensor_value_type::*;
     #[test]
     fn new_sensor() {
         let id = SensorIdentifier::new("probeid", "protocol", "name");
@@ -95,7 +93,7 @@ mod test {
         let value = SensorValue {
             id: id.clone(),
             timestamp: chrono::Local::now().naive_local(),
-            value: SensorValueType::Number(10.0),
+            value: SensorValueType::Temperature(Temperature::create(10.0).unwrap())
         };
         let mut repo = SensorRepository::new();
 
@@ -108,7 +106,7 @@ mod test {
         let finded = repo.extract_sensor(&id);
         assert_eq!(
             finded.unwrap().get_last().unwrap().value,
-            SensorValueType::Number(10.0)
+            SensorValueType::Temperature(Temperature::create(10.0).unwrap())
         )
     }
     #[test]
@@ -119,12 +117,12 @@ mod test {
         let value = SensorValue {
             id: id.clone(),
             timestamp: chrono::Local::now().naive_local(),
-            value: SensorValueType::Number(10.0),
+            value: SensorValueType::Humidity(Humidity::create(10).unwrap()),
         };
         let value2 = SensorValue {
             id: id2.clone(),
             timestamp: chrono::Local::now().naive_local(),
-            value: SensorValueType::Number(11.0),
+            value: SensorValueType::Humidity(Humidity::create(11).unwrap()),
         };
 
         let mut repo = SensorRepository::new();
@@ -138,7 +136,7 @@ mod test {
         let finded = repo.extract_sensor(&id);
         assert_eq!(
             finded.unwrap().get_last().unwrap().value,
-            SensorValueType::Number(10.0)
+            SensorValueType::Humidity(Humidity::create(10).unwrap())
         )
     }
 }

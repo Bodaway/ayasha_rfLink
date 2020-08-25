@@ -1,44 +1,36 @@
-use crate::errors::Result;
+use crate::domain::command_event::Command;
 use std::sync::mpsc::channel;
 use tokio::task;
 
-use crate::domain::listen;
+use crate::domain::{dispatch, apply};
 use crate::domain::sensor::SensorRepository;
 
-type GetDataFunction = Box<dyn FnOnce(&SensorRepository) -> Result<()> + Send>;
-
-pub enum Message {
-    IncomingData(String),
-    GetData(GetDataFunction),
-}
 
 #[derive(Clone)]
 pub struct MessageSender {
-    inner: std::sync::mpsc::Sender<Message>,
+    inner: std::sync::mpsc::Sender<Command>,
 }
 
 impl MessageSender {
-    pub fn send(&self, mess: Message) {
+    pub fn send(&self, mess: Command) {
         self.inner.send(mess).expect("comm error with state actor");
     }
 }
 
 pub fn init_actor() -> MessageSender {
-    let (sender, receiver) = channel::<Message>();
+    let (sender, receiver) = channel::<Command>();
     task::spawn(async move {
         let mut repo = SensorRepository::new();
         loop {
             match receiver.recv() {
-                Ok(message) => {
-                    let result = match message {
-                        Message::IncomingData(input) => listen(&input, &mut repo),
-                        Message::GetData(getter) => getter(&repo),
-                    };
-                    match result {
-                        Ok(_) => (),
-                        Err(e) => println!("error in domain actor: {}", e),
-                    };
-                }
+                Ok(command) => {
+                    let r_events = dispatch(command, &repo);
+                    match r_events {
+                        Ok(events) => apply(events,&mut repo),
+                        Err(e) => println!("error during dispatch: {}", e)
+                    }
+                    
+                },
                 Err(e) => println!("inter task comm error {}", e),
             }
         }

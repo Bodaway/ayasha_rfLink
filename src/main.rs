@@ -11,8 +11,8 @@ use hyper::{Body, Error, Method, Response, Server, StatusCode};
 use std::net::SocketAddr;
 
 use crate::domain::sensor::SensorRepository;
-use crate::errors::RfError;
-use state_actor::Message;
+use crate::domain::errors::DomainError;
+use crate::domain::command_event::Command;
 
 #[tokio::main]
 async fn main() {
@@ -35,13 +35,13 @@ async fn main() {
                 (&Method::GET, "/alive") => Ok::<_,Error>(Response::new(Body::from("yes"))),
                 (&Method::GET, "/all_sensors") => {
                     let (sender, receiver) = std::sync::mpsc::channel::<Box<String>>();
-                    let mess = Message::GetData(Box::new(move |state:&SensorRepository| {
+                    let mess = Command::GetData(Box::new(move |state:&SensorRepository| {
                         let json = state.get_all_state()?;
                         match sender.send(Box::new(json)) {
                             Ok(_) => Ok(()),
-                            Err(e) => Err(RfError::ComError{value: e.to_string()})
+                            Err(e) => Err(DomainError::DataExtractionError{value: e.to_string()})
                         }?;
-                        Ok(())
+                        Ok(vec![])
 
                     }));
                     sender_read.send(mess);

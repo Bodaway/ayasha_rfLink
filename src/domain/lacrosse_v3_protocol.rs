@@ -1,15 +1,33 @@
 use crate::domain::raw_frame::RawFrame;
-use crate::domain::sensor::{SensorValue, SensorValueType};
+use crate::domain::sensor::{SensorValue};
+use crate::domain::sensor_value_type::{SensorValueType,Temperature,Humidity,ValueType};
 use crate::domain::sensor_identifier::SensorIdentifier;
-use crate::errors::*;
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
+
+use snafu::Snafu;
+
+#[derive(Debug, Snafu)]
+#[snafu(visibility = "pub(crate)")]
+pub enum LacrosseError {
+    #[snafu(display("Invalid Frame"))]
+    InvalidFrameError,
+
+    #[snafu(display("parsing failure for value {}", value))]
+    ParsingFrameError {
+        value: String,
+        source: std::num::ParseIntError,
+    },
+}
+
+pub type Result<T, E = LacrosseError> = std::result::Result<T, E>;
+
 
 #[derive(Debug, PartialEq)]
 pub struct LaCrosseData {
     pub sensor_id: String,
     pub temperature: f64,
-    pub humidity: i32,
+    pub humidity: u32,
     pub timestamp: NaiveDateTime,
 }
 
@@ -26,47 +44,26 @@ impl LaCrosseData {
             &LaCrosseData::get_protocol(),
             "temperature",
         );
+
+        let typed_value_temp = Temperature::create(self.temperature).expect("typing fail");
         let temp_value = SensorValue {
             id: temp_id,
             timestamp: self.timestamp,
-            value: SensorValueType::Number(self.temperature),
+            value:SensorValueType::Temperature(typed_value_temp) ,
         };
 
+        let typed_value_hum = Humidity::create(self.humidity).expect("typing fail");
         let hum_id =
             SensorIdentifier::new(&self.sensor_id, &LaCrosseData::get_protocol(), "humidity");
         let hum_value = SensorValue {
             id: hum_id,
             timestamp: self.timestamp,
-            value: SensorValueType::Number(self.humidity as f64),
+            value: SensorValueType::Humidity(typed_value_hum),
         };
 
         vec![temp_value, hum_value]
     }
-    /*fn get_date(&self) -> NaiveDateTime {
-        self.timestamp
-    }
-    fn get_id(&self) -> String {
-        self.sensor_id.clone()
-    }
-    fn values_is_diff(&self, other: &Self) -> bool
-    where
-        Self: Sized,
-    {
-        let diff_temp = ((self.temperature - other.temperature) * 100.0).round() / 100.0;
-        let diff_hum = self.humidity - other.humidity;
 
-        diff_temp.abs() >= 0.2 || diff_hum.abs() >= 1
-    }
-    fn to_dao(&self) -> RfDataDao {
-        RfDataDao {
-            id: self.sensor_id.clone(),
-            protocol: "lacrosse_v3".into(),
-            dt_start: self.timestamp,
-            dt_end: None,
-            temperature: Some(self.temperature),
-            humidity: Some(self.humidity as f64),
-        }
-    }*/
 }
 
 pub fn is_valid_raw(raw: &RawFrame) -> bool {
@@ -98,7 +95,7 @@ fn decrypt(raw: &RawFrame) -> Result<LaCrosseData> {
         .filter(|x| x.len() == 41)
         .collect::<Vec<&str>>();
     if binary_frames.len() == 0 {
-        return Err(RfError::NoValidFrame);
+        return Err(LacrosseError::InvalidFrameError);
     }
     if binary_frames.len() != 4 {
         println!(
@@ -122,7 +119,7 @@ fn decrypt(raw: &RawFrame) -> Result<LaCrosseData> {
     let hum_val =
         isize::from_str_radix(reverse_binary(hum_bin).as_str(), 2).context(ParsingFrameError {
             value: hum_bin.to_string(),
-        })? as i32;
+        })? as u32;
 
     Ok(LaCrosseData {
         sensor_id: id_bin,
