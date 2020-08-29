@@ -28,7 +28,7 @@ impl Sensor {
         }
         self.values.push(value);
     }
-    fn get_last(&self) -> Option<SensorValue> {
+    pub fn get_last(&self) -> Option<SensorValue> {
         self.values.last().and_then(|s| Some(s.clone()))
     }
 }
@@ -63,7 +63,7 @@ impl SensorRepository {
             }
         }
     }
-    fn extract_sensor(&self, id: &SensorIdentifier) -> Option<Sensor> {
+    pub fn extract_sensor(&self, id: &SensorIdentifier) -> Option<Sensor> {
         let sensor = self.sensors.iter().find(|s| &s.id == id);
         sensor.and_then(|s| Some(s.clone()))
     }
