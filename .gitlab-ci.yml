@@ -1,0 +1,14 @@
+stages:
+    - build
+    - test
+    - cross
+
+build:
+    image: rust:latest"
+    script: 
+        -cargo build
+
+test:
+    image: rust:latest"
+    script: 
+        -cargo test
