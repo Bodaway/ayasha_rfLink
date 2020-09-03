@@ -4,11 +4,11 @@ stages:
     - cross
 
 build:
-    image: rust:latest"
+    image: rust:latest
     script: 
         -cargo build
 
 test:
-    image: rust:latest"
+    image: rust:latest
     script: 
         -cargo test
