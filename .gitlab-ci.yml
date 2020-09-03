@@ -6,9 +6,9 @@ stages:
 build:
     image: rust:latest
     script: 
-        -cargo build
+        - cargo build
 
 test:
     image: rust:latest
     script: 
-        -cargo test
+        - cargo test
