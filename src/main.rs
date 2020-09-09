@@ -19,7 +19,7 @@ async fn main() {
     let message_sender = state_actor::init_actor();
 
     listener::start_listening(message_sender.clone());
-    let addr = SocketAddr::from(([127, 0, 0, 1], 7000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 7000));
 
     let make_service = make_service_fn(move |_| {
         let sender_read = message_sender.clone();
