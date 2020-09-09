@@ -19,7 +19,7 @@ impl MessageSender {
 
 pub fn init_actor() -> MessageSender {
     let (sender, receiver) = channel::<Command>();
-    task::spawn(async move {
+    std::thread::spawn(move || {
         let mut repo = SensorRepository::new();
         loop {
             match receiver.recv() {

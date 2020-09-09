@@ -1,14 +1,52 @@
 stages:
-    - build
-    - test
-    - cross
+  - test_build
+  - deploy
 
-build:
-    image: rust:latest
-    script: 
-        - cargo build
+image: rust
 
-test:
-    image: rust:latest
-    script: 
-        - cargo test
+test_x86:
+  stage: test_build
+
+  before_script:
+    - apt update -yqq
+    - apt install -yqq libudev-dev pkg-config  > /dev/null
+  
+  script:
+    - cargo test
+
+cross_build:
+  stage: test_build
+  services:
+    - docker:19.03.12-dind
+  before_script:
+    - apt update -yqq
+    - apt install -yqq libudev-dev pkg-config apt-transport-https ca-certificates curl gnupg2 software-properties-common > /dev/null
+    - curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+    - add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+    - apt -qq update
+    - apt install -y docker-ce > /dev/null
+    - cargo install -q cross cargo install --git https://github.com/schrieveslaach/cross.git --branch docker-remote
+  script:
+    - cross build --release --target arm-unknown-linux-musleabihf
+ 
+  artifacts:
+    paths:
+      - target/arm-unknown-linux-musleabihf/release/ayasha_rf
+
+publish:
+  stage: deploy
+  dependencies:
+    - cross_build
+  before_script:
+    - ls
+    - mkdir -p ~/.ssh
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "$ssh_private_key")
+    - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
+  script:
+    - ssh $ssh_pi "killall -q ayasha_rf" 
+    - ssh  $ssh_pi "rm -Rf /home/pi/ayasha/"
+    - ssh  $ssh_pi "mkdir /home/pi/ayasha/"
+    - scp -r target/arm-unknown-linux-musleabihf/release/* $ssh_pi:/home/pi/ayasha
+    - ssh $ssh_pi "cd /home/pi/ayasha ; screen -dmS ayasha ./ayasha_rf" 
+ 

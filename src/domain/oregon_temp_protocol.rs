@@ -49,7 +49,7 @@ impl OregonTempData {
         }
     }
 }
-
+/*
 #[cfg(test)]
 mod test {
     use super::*;
@@ -64,3 +64,4 @@ mod test {
         assert_eq!(data.battery_state, "OK");
     }
 }
+*/
