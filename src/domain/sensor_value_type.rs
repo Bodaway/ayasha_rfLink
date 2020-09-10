@@ -40,6 +40,18 @@ impl SensorValueType {
              _ => Err(ValueTypeError::InvalidComparaison)
         }
     }
+    pub fn is_temperature(&self) -> Option<&Temperature> {
+        match self {
+            SensorValueType::Temperature(t) => Some(t),
+            _ => None
+        }
+    }
+    pub fn is_humidity(&self) -> Option<&Humidity> {
+        match self {
+            SensorValueType::Humidity(h) => Some(h),
+            _ => None
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize)]

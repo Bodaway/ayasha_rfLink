@@ -1,7 +1,7 @@
 use crate::domain::raw_frame::RawFrame;
-use crate::domain::sensor::{SensorValue};
-use crate::domain::sensor_value_type::{SensorValueType,Temperature,Humidity,ValueType};
+use crate::domain::sensor::SensorValue;
 use crate::domain::sensor_identifier::SensorIdentifier;
+use crate::domain::sensor_value_type::{Humidity, SensorValueType, Temperature, ValueType};
 use chrono::NaiveDateTime;
 use snafu::ResultExt;
 
@@ -21,7 +21,6 @@ pub enum LacrosseError {
 }
 
 pub type Result<T, E = LacrosseError> = std::result::Result<T, E>;
-
 
 #[derive(Debug, PartialEq)]
 pub struct LaCrosseData {
@@ -44,26 +43,37 @@ impl LaCrosseData {
             &LaCrosseData::get_protocol(),
             "temperature",
         );
-
-        let typed_value_temp = Temperature::create(self.temperature).expect("typing fail");
-        let temp_value = SensorValue {
-            id: temp_id,
-            timestamp: self.timestamp,
-            value:SensorValueType::Temperature(typed_value_temp) ,
-        };
-
-        let typed_value_hum = Humidity::create(self.humidity).expect("typing fail");
         let hum_id =
             SensorIdentifier::new(&self.sensor_id, &LaCrosseData::get_protocol(), "humidity");
-        let hum_value = SensorValue {
-            id: hum_id,
-            timestamp: self.timestamp,
-            value: SensorValueType::Humidity(typed_value_hum),
+
+        let r_typed_value_temp = Temperature::create(self.temperature);
+        let vec_temp = match r_typed_value_temp {
+            Err(e) => {
+                print!("error during typing value lacrosse {}", e);
+                vec![]
+            }
+            Ok(typed_value_temp) => vec![SensorValue {
+                id: temp_id,
+                timestamp: self.timestamp,
+                value: SensorValueType::Temperature(typed_value_temp),
+            }]
         };
 
-        vec![temp_value, hum_value]
-    }
+        let r_typed_value_hum = Humidity::create(self.humidity);
+        let vec_hum = match r_typed_value_hum {
+            Err(e) => {
+                print!("error during typing value lacrosse {}", e);
+                vec![]
+            }
+            Ok(typed_value_hum) => vec![SensorValue {
+                id: hum_id,
+                timestamp: self.timestamp,
+                value: SensorValueType::Humidity(typed_value_hum),
+            }]
+        };
 
+        [vec_temp,vec_hum].concat()
+    }
 }
 
 pub fn is_valid_raw(raw: &RawFrame) -> bool {
@@ -237,5 +247,30 @@ mod test {
 
         let result = is_valid_raw(&input);
         assert_eq!(result, true);
+    }
+    #[test]
+    fn to_sensors_values_is_correct() {
+        let data = LaCrosseData{
+            sensor_id: "0".to_string(),
+            temperature: 35.2,
+            humidity: 35,
+            timestamp: chrono::Local::now().naive_local()
+        };
+        let result = data.to_sensors_values();
+        assert_eq!(result.len(), 2);
+        assert_eq!(result.first().unwrap().value.is_temperature().unwrap(),&Temperature::create(35.2).unwrap()); 
+        assert_eq!(result.last().unwrap().value.is_humidity().unwrap(),&Humidity::create(35).unwrap()); 
+    }
+    #[test]
+    fn to_sensors_values_one_error() {
+        let data = LaCrosseData{
+            sensor_id: "0".to_string(),
+            temperature: -50.0,
+            humidity: 35,
+            timestamp: chrono::Local::now().naive_local()
+        };
+        let result = data.to_sensors_values();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result.first().unwrap().value.is_humidity().unwrap(),&Humidity::create(35).unwrap()); 
     }
 }

@@ -1,5 +1,5 @@
-use crate::domain::lacrosse_v3_protocol::is_valid_raw;
 use crate::domain::lacrosse_v3_protocol::LaCrosseData;
+use crate::domain::oregon_temp_protocol::OregonTempData;
 use crate::domain::raw_frame::RawFrame;
 use crate::domain::sensor::SensorValue;
 use crate::domain::errors::*;
@@ -9,14 +9,21 @@ use snafu::ResultExt;
 #[derive(Debug, PartialEq)]
 pub enum Frame {
     LaCrosseV3(LaCrosseData),
-    OregonSc,
+    OregonSc(OregonTempData),
     Unknow,
 }
 
 impl Frame {
     pub fn decrypt_raw(raw: &RawFrame) -> Result<Frame> {
         match raw {
-            r if is_valid_raw(&r) => LaCrosseData::from_raw(&r).and_then(|r| Ok(Frame::LaCrosseV3(r))).context(InternalLacrosseError),
+            r if crate::domain::lacrosse_v3_protocol::is_valid_raw(&r) => 
+                LaCrosseData::from_raw(&r)
+                .and_then(|r| Ok(Frame::LaCrosseV3(r)))
+                .context(InternalLacrosseError),
+            r if crate::domain::oregon_temp_protocol::is_valid_raw(&r) => 
+                OregonTempData::from_raw(&r)
+                .and_then(|r| Ok(Frame::OregonSc(r)))
+                .context(InternalOregonError),
             _ => Ok(Frame::Unknow),
         }
     }
@@ -25,7 +32,7 @@ impl Frame {
         match self {
             Frame::Unknow => vec![],
             Frame::LaCrosseV3(f) => f.to_sensors_values(),
-            Frame::OregonSc => unimplemented!()
+            Frame::OregonSc(f) => f.to_sensors_values() 
         }
     } 
 }
