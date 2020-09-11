@@ -71,6 +71,11 @@ impl SensorRepository {
     pub fn get_all_state(&self) -> Result<String> {
         serde_json::to_string(&self.sensors).context(DataFormatingError)
     }
+
+    pub fn get_last_values(&self) -> Result<String> {
+        let data = self.sensors.iter().map(|s| s.get_last()).collect::<Vec<Option<SensorValue>>>();
+        serde_json::to_string(&data).context(DataFormatingError)
+    }
 }
 
 #[cfg(test)]

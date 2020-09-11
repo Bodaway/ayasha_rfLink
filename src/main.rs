@@ -55,6 +55,28 @@ async fn main() {
                         }
                     }
                 },
+                (&Method::GET, "/all_sensors_last_value") => {
+                    let (sender, receiver) = std::sync::mpsc::channel::<Box<String>>();
+                    let mess = Command::GetData(Box::new(move |state:&SensorRepository| {
+                        let json = state.get_last_values()?;
+                        match sender.send(Box::new(json)) {
+                            Ok(_) => Ok(()),
+                            Err(e) => Err(DomainError::DataExtractionError{value: e.to_string()})
+                        }?;
+                        Ok(vec![])
+
+                    }));
+                    sender_read.send(mess);
+                    match receiver.recv_timeout(std::time::Duration::from_secs(1)) {
+                        Ok(data) => {
+                            Ok::<_,Error>(Response::builder().header("content-type", "application/json").header("charset", "UTF-8").body(Body::from(*data)).unwrap())
+                        },
+                        Err(e) => {
+                            println!("error in hyper: {}", e);
+                            Ok::<_,Error>(Response::new(Body::from(e.to_string())))
+                        }
+                    }
+                },
                 _ => {
                         let mut not_found = Response::default();
                         *not_found.status_mut() = StatusCode::NOT_FOUND;
