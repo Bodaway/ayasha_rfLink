@@ -44,7 +44,7 @@ publish:
     - ssh-add <(echo "$ssh_private_key")
     - '[[ -f /.dockerenv ]] && echo -e "Host *\n\tStrictHostKeyChecking no\n\n" > ~/.ssh/config'
   script:
-    - ssh $ssh_pi "killall -q ayasha_rf" 
+    - ssh $ssh_pi "if pgrep ayasha_rf; then pkill ayasha_rf; fi" 
     - ssh  $ssh_pi "rm -Rf /home/pi/ayasha/"
     - ssh  $ssh_pi "mkdir /home/pi/ayasha/"
     - scp -r target/arm-unknown-linux-musleabihf/release/* $ssh_pi:/home/pi/ayasha
