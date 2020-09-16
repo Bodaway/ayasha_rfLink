@@ -10,7 +10,7 @@ use snafu::ResultExt;
 pub enum Frame {
     LaCrosseV3(LaCrosseData),
     OregonSc(OregonTempData),
-    Unknow,
+    Unknow(RawFrame),
 }
 
 impl Frame {
@@ -24,13 +24,13 @@ impl Frame {
                 OregonTempData::from_raw(&r)
                 .and_then(|r| Ok(Frame::OregonSc(r)))
                 .context(InternalOregonError),
-            _ => Ok(Frame::Unknow),
+            _ => Ok(Frame::Unknow(raw.clone())),
         }
     }
 
     pub fn obtain_sensor_values(&self) -> Vec<SensorValue> {
         match self {
-            Frame::Unknow => vec![],
+            Frame::Unknow(_) => vec![],
             Frame::LaCrosseV3(f) => f.to_sensors_values(),
             Frame::OregonSc(f) => f.to_sensors_values() 
         }
@@ -49,7 +49,7 @@ mod test {
         match frame {
             Err(_) => assert!(false,"frame should be unknow"),
             Ok(f) => match f {
-                Frame::Unknow => assert!(true),
+                Frame::Unknow(_) => assert!(true),
                 _ =>  assert!(false,"frame should be unknow")
             }
         }
@@ -62,7 +62,7 @@ mod test {
         match frame {
             Err(_) => assert!(false,"frame should be unknow"),
             Ok(f) => match f {
-                Frame::Unknow => assert!(true),
+                Frame::Unknow(_) => assert!(true),
                 _ =>  assert!(false,"frame should be unknow")
             }
         }

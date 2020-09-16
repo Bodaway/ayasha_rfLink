@@ -6,6 +6,7 @@ pub mod command_event;
 pub mod errors;
 pub mod raw_frame;
 pub mod sensor;
+pub mod external_message;
 mod sensor_identifier;
 mod sensor_value_type;
 
@@ -16,6 +17,7 @@ use errors::*;
 use frame::Frame;
 use raw_frame::RawFrame;
 use sensor::SensorRepository;
+use external_message::MessageSender;
 
 pub fn dispatch(command: Command, repo: &SensorRepository) -> Result<Vec<Event>> {
     match command {
@@ -28,7 +30,10 @@ pub fn dispatch(command: Command, repo: &SensorRepository) -> Result<Vec<Event>>
 fn dispatch_input(data: &str, repo: &SensorRepository) -> Result<Vec<Event>> {
     let raw = RawFrame::new(data);
     let frame = Frame::decrypt_raw(&raw)?;
-    let sensors = frame.obtain_sensor_values();
+    match frame {
+        Frame::Unknow(raw) => Ok(vec![Event::UnknowDataReceived(raw)]),
+        _ => {
+let sensors = frame.obtain_sensor_values();
 
     sensors
         .into_iter()
@@ -50,12 +55,26 @@ fn dispatch_input(data: &str, repo: &SensorRepository) -> Result<Vec<Event>> {
         })
         .filter_map(|e| e)
         .collect()
+        }
+    }
+    
 }
 
 pub fn apply(events: Vec<Event>, repo: &mut SensorRepository) {
     for ev in events {
         match ev {
             Event::ValueChanged(value) => repo.add_value(value),
+            Event::UnknowDataReceived(_) => (),
         };
     }
+}
+
+pub fn send_external_message(events: Vec<Event>, sender: &dyn MessageSender) -> Result<Vec<Event>> {
+ events.into_iter().map(|ev|{
+        match &ev {
+            Event::ValueChanged(value) => sender.send(external_message::get_external_message("SensorValueChanged".to_string(),&value)?)?,
+            Event::UnknowDataReceived(raw) => sender.send(external_message::get_external_message("SensorUnknowDataReceived".to_string(),&raw)?)?,
+        };
+        Ok(ev)
+    }).collect::<Result<Vec<Event>>>()
 }

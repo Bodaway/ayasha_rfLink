@@ -2,6 +2,7 @@ mod domain;
 mod errors;
 mod listener;
 mod state_actor;
+mod rabbit_sender;
 
 extern crate lazy_static;
 extern crate serde;
@@ -31,7 +32,6 @@ async fn main() {
                 async move {
                     let sender_read = sender_read.clone();
                     match (req.method(), req.uri().path()) {
-                (&Method::GET, "/") => Ok(Response::new(Body::from("Try POSTing data to /echo such as: `curl localhost:3000/echo -XPOST -d 'hello world'`",))),
                 (&Method::GET, "/alive") => Ok::<_,Error>(Response::new(Body::from("yes"))),
                 (&Method::GET, "/all_sensors") => {
                     let (sender, receiver) = std::sync::mpsc::channel::<Box<String>>();

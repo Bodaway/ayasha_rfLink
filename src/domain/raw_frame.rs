@@ -1,5 +1,6 @@
 use chrono::NaiveDateTime;
-
+use serde::Serialize;
+#[derive(Clone,Debug, PartialEq,Serialize)]
 pub struct RawFrame {
     pub data: String,
     pub timestamp: NaiveDateTime,
@@ -33,9 +34,4 @@ impl RawFrame {
         let raw_vec = self.to_vec();
         (&raw_vec[4][13..]).to_string()
     }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
 }

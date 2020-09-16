@@ -48,5 +48,5 @@ publish:
     - ssh  $ssh_pi "rm -Rf /home/pi/ayasha/"
     - ssh  $ssh_pi "mkdir /home/pi/ayasha/"
     - scp -r target/arm-unknown-linux-musleabihf/release/* $ssh_pi:/home/pi/ayasha
-    - ssh $ssh_pi "cd /home/pi/ayasha ; screen -dmS ayasha ./ayasha_rf" 
+    - ssh $ssh_pi "cd /home/pi/ayasha ; screen -dmS ayasha ./ayasha_rf $rabbitaddress $rabbituser" 
  

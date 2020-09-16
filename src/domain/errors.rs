@@ -20,6 +20,9 @@ pub enum DomainError {
 
     #[snafu(display("error during data formating: {}", source.to_string()))]
     DataFormatingError { source: serde_json::Error },
+
+    #[snafu(display("error during message sending: {}", source.to_string()))]
+    ExternalMessageError { source: lapin::Error },
 }
 
 pub type Result<T, E = DomainError> = std::result::Result<T, E>;

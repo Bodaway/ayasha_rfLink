@@ -73,7 +73,7 @@ impl OregonTempData {
                 vec![temp_value]
             }
             Err(e) => {
-                print!("error during typing value oregon");
+                print!("error during typing value oregon: {}", e);
                 vec![]
             }
         }
