@@ -21,8 +21,8 @@ pub fn init_actor() -> MessageSender {
     let (sender, receiver) = channel::<Command>();
     std::thread::spawn(move || {
     let args: Vec<String> = std::env::args().collect();
-    let rabbit_user = &args[1];
-    let rabbit_address = &args[2];
+    let rabbit_address = &args[1];
+    let rabbit_user = &args[2];
     let uri = format!("amqp://{}@{}/%2f", rabbit_user,rabbit_address);
     let ex_message_sender = RabbitSender::new( uri,  "Ayasha".to_string());
         let mut repo = SensorRepository::new();

@@ -56,8 +56,6 @@ pub fn start_listening(messager: MessageSender) {
 }
 
 fn listen(messager: MessageSender) -> Result<()> {
-    let mut args = env::args();
-    let tty_path = args.nth(1).unwrap_or_else(|| DEFAULT_TTY.into());
 
     let mut settings = tokio_serial::SerialPortSettings::default();
     settings.baud_rate = 57600;
@@ -65,7 +63,7 @@ fn listen(messager: MessageSender) -> Result<()> {
     settings.flow_control = tokio_serial::FlowControl::None;
     settings.parity = tokio_serial::Parity::None;
     settings.stop_bits = tokio_serial::StopBits::One;
-    let mut port = tokio_serial::Serial::from_path(tty_path, &settings).unwrap();
+    let mut port = tokio_serial::Serial::from_path(DEFAULT_TTY, &settings).unwrap();
 
     #[cfg(unix)]
     port.set_exclusive(false)
